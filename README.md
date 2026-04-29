@@ -48,4 +48,4 @@ uv pip install -e ".[vllm]"
 uv pip install -U --torch-backend
 ```
 
-> **Personal note:** I've been testing this primarily with the Transformers backend and Llama-3.1-8B-Instruct. If you're just getting started, that's the easiest combo to get running locally — no extra vLLM build steps required.
+> **Personal note:** I've been primarily testing with the Transformers backend on Qwen3-8B — works well out of the box. The MLX backend is handy for quick local experiments on my MacBook.
