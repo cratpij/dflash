@@ -42,4 +42,6 @@ dev = [
     "ipython",
     "ipdb",
     "pytest",
+    "pytest-cov",  # useful for checking test coverage while exploring the codebase
+    "ruff",        # linting/formatting
 ]
