@@ -44,4 +44,6 @@ dev = [
     "pytest",
     "pytest-cov",  # useful for checking test coverage while exploring the codebase
     "ruff",        # linting/formatting
+    "matplotlib",  # handy for plotting speculative decoding acceptance rate curves
+    "jupyter",     # for running local notebooks when experimenting with the codebase
 ]
