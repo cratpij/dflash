@@ -46,6 +46,7 @@ class DFlashConfig:
     # NOTE: attention_scale_override allows manually tuning the QK scale factor.
     # Useful when experimenting with models that benefit from a non-standard scale
     # (e.g., scaled init or head_dim != 64). Set to None to use default 1/sqrt(head_dim).
+    # Personal note: I've found values around 0.08-0.09 work well for head_dim=128 models.
     attention_scale_override: Optional[float] = None
 
 
@@ -70,7 +71,8 @@ class DFlashAttention(nn.Module):
         dim = config.hidden_size
         self.n_heads = n_heads = config.num_attention_heads
         self.n_kv_heads = n_kv_heads = config.num_key_value_heads
-        # Use override scale if provided, otherwise fall back to standard 1/sqrt(head_dim)
+        # Use override scale if provided, otherwise fall back to standard 1/sqrt(head_dim).
+        # For head_dim=128, default gives ~0.0884; for head_dim=64, ~0.125.
         self.scale = config.attention_scale_override if config.attention_scale_override is not None else config.head_dim ** -0.5
         self.q_proj = nn.Linear(dim, n_heads * config.head_dim, bias=False)
         self.k_proj = nn.Linear(dim, n_kv_heads * config.head_dim, bias=False)
@@ -83,11 +85,4 @@ class DFlashAttention(nn.Module):
         B, L, _ = x.shape
         S = x_ctx.shape[1]
         queries = self.q_proj(x)
-        ctx_keys = self.k_proj(x_ctx)
-        ctx_values = self.v_proj(x_ctx)
-        prop_keys = self.k_proj(x)
-        prop_values = self.v_proj(x)
-        queries = self.q_norm(queries.reshape(B, L, self.n_heads, -1)).transpose(0, 2, 1, 3)
-        ctx_keys = self.k_norm(ctx_keys.reshape(B, S, self.n_kv_heads, -1)).transpose(0, 2, 1, 3)
-        ctx_values = ctx_values.reshape(B, S, self.n_kv_heads, -1).transpose(0, 2, 1, 3)
-        prop_keys = self.k_norm(prop_keys.reshape(B, L, self.n_kv_heads, -1
+        ctx_keys = self
