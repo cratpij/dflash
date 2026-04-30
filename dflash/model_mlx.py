@@ -47,6 +47,7 @@ class DFlashConfig:
     # Useful when experimenting with models that benefit from a non-standard scale
     # (e.g., scaled init or head_dim != 64). Set to None to use default 1/sqrt(head_dim).
     # Personal note: I've found values around 0.08-0.09 work well for head_dim=128 models.
+    # After more testing: 0.085 seems like a sweet spot for Qwen3-based checkpoints.
     attention_scale_override: Optional[float] = None
 
 
@@ -73,16 +74,14 @@ class DFlashAttention(nn.Module):
         self.n_kv_heads = n_kv_heads = config.num_key_value_heads
         # Use override scale if provided, otherwise fall back to standard 1/sqrt(head_dim).
         # For head_dim=128, default gives ~0.0884; for head_dim=64, ~0.125.
-        self.scale = config.attention_scale_override if config.attention_scale_override is not None else config.head_dim ** -0.5
+        # Clamp the scale to a reasonable range to catch accidental misconfiguration.
+        raw_scale = config.attention_scale_override if config.attention_scale_override is not None else config.head_dim ** -0.5
+        if not (0.01 <= raw_scale <= 1.0):
+            raise ValueError(f"attention scale {raw_scale:.4f} is outside the expected range [0.01, 1.0]; check your config")
+        self.scale = raw_scale
         self.q_proj = nn.Linear(dim, n_heads * config.head_dim, bias=False)
         self.k_proj = nn.Linear(dim, n_kv_heads * config.head_dim, bias=False)
         self.v_proj = nn.Linear(dim, n_kv_heads * config.head_dim, bias=False)
         self.o_proj = nn.Linear(n_heads * config.head_dim, dim, bias=False)
         self.q_norm = nn.RMSNorm(config.head_dim, eps=config.rms_norm_eps)
-        self.k_norm = nn.RMSNorm(config.head_dim, eps=config.rms_norm_eps)
-
-    def __call__(self, x, x_ctx, rope, cache):
-        B, L, _ = x.shape
-        S = x_ctx.shape[1]
-        queries = self.q_proj(x)
-        ctx_keys = self
+        self.k_norm = nn.RMSNorm(config.head_dim, eps=config.rms
